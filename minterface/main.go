@@ -7,6 +7,11 @@ import (
 	"strconv"
 	"strings"
 	"io"
+	"golang.org/x/tour/reader"
+	"os"
+	"image"
+	"image/color"
+	"golang.org/x/tour/pic"
 )
 
 func main() {
@@ -151,16 +156,33 @@ func main() {
 	fmt.Println(Sqrt(2))
 	fmt.Println(Sqrt(-2))
 	// Readers
-	r :=strings.NewReader("Hello, Reader! 宋")
-	b:=make([]byte, 15)
+	r := strings.NewReader("Hello, Reader! 宋")
+	b := make([]byte, 15)
 	for {
-		n,err :=r.Read(b)
-		fmt.Printf("n=%v err=%v b=%v\n",n,err, b)
-		fmt.Printf("b[:n] = %q\n",b[:n])
-		if err == io.EOF{
+		n, err := r.Read(b)
+		fmt.Printf("n=%v err=%v b=%v\n", n, err, b)
+		fmt.Printf("b[:n] = %q\n", b[:n])
+		if err == io.EOF {
 			break
 		}
 	}
+
+	// validate myReader
+	reader.Validate(MyReader{})
+	// rot13Reader
+	s1:= strings.NewReader("Lbh penpxrq gur pbqr!")
+	r1:=rot13Reader{s1}
+	io.Copy(os.Stdout,&r1)
+	fmt.Println("")
+
+	// image
+	m := image.NewRGBA(image.Rect(0,0,100,100))
+	fmt.Println(m.Bounds())
+	fmt.Println(m.At(0,0).RGBA())
+	// other image
+	m1:=Image{100,100, 128}
+	pic.ShowImage(&m1)
+
 
 }
 
@@ -321,3 +343,45 @@ func Sqrt(x MyFloat) (MyFloat, error) {
 //func (x MyFloat) String() string{
 //	return fmt.Sprintf("test",float64(x))
 //}
+
+type MyReader struct {
+
+}
+
+func (reader MyReader) Read(b []byte) (n int, err error) {
+	b[0] = 'A'
+	return 1, nil
+}
+
+type rot13Reader struct {
+	r io.Reader
+}
+
+func (reader rot13Reader) Read(b []byte) (n int, err error) {
+	n, err = reader.r.Read(b)
+	for i := 0; i < len(b); i++ {
+		if (b[i] >= 'A' && b[i] < 'N') || (b[i] >= 'a' && b[i] < 'n') {
+			b[i] += 13
+		} else if (b[i] > 'M' && b[i] <= 'Z') || (b[i] > 'm' && b[i] <= 'z') {
+			b[i] -= 13
+		}
+	}
+	return
+}
+
+type Image struct {
+	Width,Height int
+	color uint8
+}
+
+func (i *Image) Bounds() image.Rectangle {
+	return image.Rect(0,0,i.Width,i.Height)
+}
+
+func (i *Image) ColorModel() color.Model{
+	return color.RGBAModel
+}
+
+func (i *Image) At(x,y int) color.Color {
+	return color.RGBA{i.color +uint8(x),i.color+uint8(y),255,255 }
+}
